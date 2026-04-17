@@ -3,73 +3,65 @@ import { NextResponse } from "next/server";
 const adviceMap: Record<string, string[]> = {
   acne_like_breakouts: [
     "10mg Accutane every other day.",
-    "Use a heavy, thick moisturiser and spf50 daily.",
-    "0.05% Tazarotene cream or Tretinoin 2-3x a week.",
+    "Use a heavy moisturiser and SPF50 daily.",
+    "Tazarotene or Tretinoin 2–3x a week.",
   ],
   skin_texture_issue: [
-    "Keep routine simple and avoid breaking skin barrier.",
-    "Use sunscreen daily and avoid harsh overuse of products.",
-    "Exfoliate 2-3x a week.",
+    "Keep routine simple.",
+    "Use sunscreen daily.",
+    "Exfoliate 2–3x a week.",
   ],
   under_eye_tiredness: [
-    "Low dose melatonin + trazodone for sleep.",
-    "Hydroquinone cream to brighten under eyes.",
-    "Reduce stress and fatigue.",
+    "Improve sleep consistency.",
+    "Reduce stress.",
+    "Hydrate properly.",
   ],
   fine_lines: [
     "Use daily sunscreen.",
-    "Tretinoin 3-5x a week.",
-    "Heavy moisturisers.",
+    "Tretinoin 3–5x a week.",
+    "Use moisturisers.",
   ],
   hair_thinning: [
-    "Topicals like minoxidil + microneedling.",
-    "DHT blockers if needed.",
-    "Lower stress + better diet.",
+    "Consider minoxidil + microneedling.",
+    "Track progression.",
+    "Reduce stress.",
   ],
   higher_body_fat_appearance: [
-    "Calorie deficit + whole food diet.",
-    "Fat loss agents if needed.",
-    "Daily movement + sleep.",
+    "Calorie deficit.",
+    "Whole food diet.",
+    "Daily movement.",
   ],
   low_muscle_definition: [
-    "Resistance training + protein.",
-    "Hormonal optimization if needed.",
-    "Track strength weekly.",
+    "Resistance training.",
+    "Protein intake.",
+    "Track strength.",
   ],
   posture_issue: [
-    "Upper-back + core training.",
+    "Train upper back + core.",
     "Fix daily posture habits.",
-    "Retake scan standing straight.",
   ],
   asymmetry_mild: [
-    "Improve sleep posture.",
-    "Track over time.",
+    "Improve posture + sleep position.",
   ],
   jawline_softness: [
     "Lower body fat.",
     "Improve neck posture.",
   ],
-
-  // NEW TAGS
   bloated_appearance: [
     "Reduce inflammatory foods.",
     "Improve gut health.",
-    "Lower sodium swings + stay hydrated.",
   ],
   unhealthy_appearance: [
-    "Fix sleep, diet, and hydration first.",
-    "Reduce stress + improve recovery.",
-    "Focus on consistent daily habits.",
+    "Fix sleep + diet first.",
+    "Improve recovery.",
   ],
   low_bone_mass_appearance: [
-    "Increase calcium + vitamin D intake.",
-    "Resistance training + impact exercises.",
-    "Improve overall nutrition.",
+    "Increase calcium + vitamin D.",
+    "Resistance training.",
   ],
   low_facial_contrast: [
-    "Improve skin tone consistency.",
-    "Hair styling / grooming can increase contrast.",
-    "Better lighting and tanning can help.",
+    "Improve grooming + skin tone.",
+    "Better lighting helps.",
   ],
 };
 
@@ -100,11 +92,18 @@ export async function POST(req: Request) {
               {
                 type: "input_text",
                 text: `
-Analyze the uploaded appearance photos.
+You are a STRICT visual classifier.
+
+Your job:
+- Only detect CLEARLY visible traits
+- DO NOT guess
+- DO NOT vary outputs
+- Be consistent across repeated scans
 
 Rules:
-- Only identify visually observable appearance patterns
-- Return JSON only
+- Only include HIGH confidence tags
+- If unsure → DO NOT include
+- Prefer fewer tags over inconsistent ones
 
 Allowed tags:
 - acne_like_breakouts
@@ -122,16 +121,20 @@ Allowed tags:
 - low_bone_mass_appearance
 - low_facial_contrast
 
-Return exactly this JSON:
+Return JSON ONLY:
+
 {
-  "overall_rating": 7.4,
-  "summary": "Short realistic summary",
-  "priority_focus": ["item 1", "item 2", "item 3"],
+  "overall_rating": number,
+  "summary": string,
+  "priority_focus": ["string"],
   "tags": [
-    { "name": "acne_like_breakouts", "confidence": "high" }
+    {
+      "name": "tag_name",
+      "confidence": "high"
+    }
   ],
-  "scan_quality": "medium",
-  "scan_quality_tips": ["tip 1", "tip 2"]
+  "scan_quality": "low | medium | high",
+  "scan_quality_tips": ["string"]
 }
                 `,
               },
@@ -170,18 +173,26 @@ Return exactly this JSON:
       );
     }
 
-    const tags = Array.isArray(parsed.tags) ? parsed.tags : [];
+    // ✅ ONLY HIGH CONFIDENCE TAGS
+    const tags = (parsed.tags || []).filter(
+      (tag: { confidence: string }) => tag.confidence === "high"
+    );
 
-    // 👇 CLEAN TAG NAMES HERE
-    const cleanedTags = tags.map((tag: { name: string; confidence: string }) => ({
+    // ✅ CLEAN + FORMAT TAG NAMES
+    const cleanedTags = tags.map((tag: any) => ({
       ...tag,
       display: tag.name
         .replace("_appearance", "")
         .replaceAll("_", " ")
-        .replace(/\b\w/g, (c) => c.toUpperCase()),
+        .replace(/\b\w/g, (c: string) => c.toUpperCase()),
     }));
 
-    const mappedAdvice = tags.flatMap((tag: { name: string }) => {
+    // ✅ SORT TAGS (CONSISTENCY)
+    cleanedTags.sort((a: any, b: any) =>
+      a.name.localeCompare(b.name)
+    );
+
+    const mappedAdvice = tags.flatMap((tag: any) => {
       return adviceMap[tag.name] || [];
     });
 
