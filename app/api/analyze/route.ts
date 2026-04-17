@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const adviceMap: Record<string, string[]> = {
+const adviceMap = {
   acne_like_breakouts: [
     "10mg Accutane every other day.",
     "Use a heavy, thick moisturiser and spf50 daily.",
@@ -71,7 +71,7 @@ const adviceMap: Record<string, string[]> = {
   ],
 };
 
-const displayNameMap: Record<string, string> = {
+const displayNameMap = {
   acne_like_breakouts: "Acne",
   skin_texture_issue: "Skin texture",
   under_eye_tiredness: "Under-eye tiredness",
@@ -207,21 +207,25 @@ Return exactly:
     const rawTags = Array.isArray(parsed.tags) ? parsed.tags : [];
 
     const tags = rawTags
-      .filter((tag) => {
+      .filter((tag: any) => {
         return (
           tag &&
           tag.name &&
           (tag.confidence === "high" || tag.confidence === "medium")
         );
       })
-      .map((tag) => ({
+      .map((tag: any) => ({
         name: tag.name,
         confidence: tag.confidence,
-        display: displayNameMap[tag.name] || tag.name,
+        display:
+          displayNameMap[tag.name as keyof typeof displayNameMap] || tag.name,
       }))
-      .sort((a, b) => a.display.localeCompare(b.display));
+      .sort((a: any, b: any) => a.display.localeCompare(b.display));
 
-    const mappedAdvice = tags.flatMap((tag) => adviceMap[tag.name] || []);
+    const mappedAdvice = tags.flatMap(
+      (tag: any) =>
+        adviceMap[tag.name as keyof typeof adviceMap] || []
+    );
 
     return NextResponse.json({
       overall_rating: parsed.overall_rating ?? null,
