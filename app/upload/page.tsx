@@ -5,6 +5,7 @@ import { useState } from "react";
 type TagItem = {
   name: string;
   confidence: string;
+  display: string;
 };
 
 type AnalysisResult = {
@@ -18,8 +19,10 @@ type AnalysisResult = {
 };
 
 export default function UploadPage() {
-  const [files, setFiles] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [faceFile, setFaceFile] = useState<File | null>(null);
+  const [bodyFile, setBodyFile] = useState<File | null>(null);
+  const [facePreview, setFacePreview] = useState<string>("");
+  const [bodyPreview, setBodyPreview] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState("");
@@ -73,7 +76,7 @@ export default function UploadPage() {
   }
 
   async function handleAnalyze() {
-    if (files.length === 0) {
+    if (!faceFile && !bodyFile) {
       setError("Please upload at least one image.");
       return;
     }
@@ -83,7 +86,8 @@ export default function UploadPage() {
     setLoading(true);
 
     try {
-      const images = await Promise.all(files.map((file) => fileToDataUrl(file)));
+      const selectedFiles = [faceFile, bodyFile].filter(Boolean) as File[];
+      const images = await Promise.all(selectedFiles.map((file) => fileToDataUrl(file)));
 
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -107,13 +111,18 @@ export default function UploadPage() {
     }
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const selectedFiles = Array.from(e.target.files || []);
-    setFiles(selectedFiles);
+  function handleFaceChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null;
+    setFaceFile(file);
+    setFacePreview(file ? URL.createObjectURL(file) : "");
+    setAnalysis(null);
+    setError("");
+  }
 
-    const urls = selectedFiles.map((file) => URL.createObjectURL(file));
-    setPreviewUrls(urls);
-
+  function handleBodyChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] || null;
+    setBodyFile(file);
+    setBodyPreview(file ? URL.createObjectURL(file) : "");
     setAnalysis(null);
     setError("");
   }
@@ -132,89 +141,83 @@ export default function UploadPage() {
             </h1>
 
             <p className="mt-4 mx-auto max-w-2xl text-sm sm:text-base text-gray-300">
-              Upload clear face and body photos. LooksLab will scan visible features,
-              identify key appearance patterns, and generate your automatic improvement plan.
+              Upload a face photo and a body photo for a stronger, more complete appearance analysis.
             </p>
           </div>
 
           <div className="mt-8 grid gap-6 lg:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
-              <h2 className="text-xl font-bold">Before you scan</h2>
-
-              <ul className="mt-4 space-y-3 text-sm text-gray-300">
-                <li>• Use bright front-facing lighting</li>
-                <li>• Upload clear face and body photos</li>
-                <li>• Avoid filters and heavy editing</li>
-                <li>• Stand straight for the most accurate posture reading</li>
-              </ul>
-
-              <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-sm text-gray-400">Best results come from:</p>
-                <p className="mt-2 text-sm text-white">
-                  1 face photo + 1 upper body or full body photo
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-dashed border-white/20 bg-black/30 p-6 text-center">
-              <h2 className="text-xl font-bold">Upload images</h2>
-
-              <p className="mt-3 text-sm text-gray-400">
-                JPG, JPEG, PNG, or WebP only
+              <h2 className="text-xl font-bold">Face Photo</h2>
+              <p className="mt-2 text-sm text-gray-400">
+                Use bright front-facing lighting and no filters.
               </p>
 
               <input
-                id="photo-upload"
+                id="face-upload"
                 type="file"
-                multiple
                 accept=".jpg,.jpeg,.png,.webp"
-                onChange={handleFileChange}
+                onChange={handleFaceChange}
                 className="hidden"
               />
 
               <label
-                htmlFor="photo-upload"
-                className="mt-6 inline-block cursor-pointer rounded-2xl bg-white px-6 py-3 font-semibold text-black hover:bg-gray-200 transition"
+                htmlFor="face-upload"
+                className="mt-5 inline-block cursor-pointer rounded-2xl bg-white px-6 py-3 font-semibold text-black hover:bg-gray-200 transition"
               >
-                Choose Photos
+                Upload Face Photo
               </label>
 
-              <p className="mt-4 text-sm text-gray-400">
-                {files.length > 0
-                  ? `${files.length} photo${files.length > 1 ? "s" : ""} selected`
-                  : "No photos selected yet"}
+              {facePreview && (
+                <img
+                  src={facePreview}
+                  alt="Face preview"
+                  className="mt-5 h-48 w-full rounded-2xl object-cover border border-white/10"
+                />
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
+              <h2 className="text-xl font-bold">Body Photo</h2>
+              <p className="mt-2 text-sm text-gray-400">
+                Upper body or full body works best.
               </p>
 
-              <button
-                type="button"
-                onClick={handleAnalyze}
-                disabled={loading}
-                className="mt-6 w-full rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 px-6 py-4 text-base sm:text-lg font-semibold text-white hover:opacity-90 transition disabled:opacity-50"
+              <input
+                id="body-upload"
+                type="file"
+                accept=".jpg,.jpeg,.png,.webp"
+                onChange={handleBodyChange}
+                className="hidden"
+              />
+
+              <label
+                htmlFor="body-upload"
+                className="mt-5 inline-block cursor-pointer rounded-2xl bg-white px-6 py-3 font-semibold text-black hover:bg-gray-200 transition"
               >
-                {loading ? "Analyzing..." : "Analyze My Photos"}
-              </button>
+                Upload Body Photo
+              </label>
+
+              {bodyPreview && (
+                <img
+                  src={bodyPreview}
+                  alt="Body preview"
+                  className="mt-5 h-48 w-full rounded-2xl object-cover border border-white/10"
+                />
+              )}
             </div>
           </div>
 
+          <button
+            type="button"
+            onClick={handleAnalyze}
+            disabled={loading}
+            className="mt-8 w-full rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 px-6 py-4 text-base sm:text-lg font-semibold text-white hover:opacity-90 transition disabled:opacity-50"
+          >
+            {loading ? "Analyzing..." : "Analyze My Photos"}
+          </button>
+
           {error && (
             <p className="mt-6 text-center text-red-400 font-medium">{error}</p>
-          )}
-
-          {previewUrls.length > 0 && (
-            <div className="mt-8">
-              <h2 className="text-2xl font-bold">Selected Photos</h2>
-
-              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                {previewUrls.map((url, index) => (
-                  <img
-                    key={index}
-                    src={url}
-                    alt={`Preview ${index + 1}`}
-                    className="h-32 w-full rounded-2xl object-cover border border-white/10"
-                  />
-                ))}
-              </div>
-            </div>
           )}
 
           {analysis && (
@@ -243,7 +246,6 @@ export default function UploadPage() {
               <div className="grid gap-6 lg:grid-cols-2">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
                   <h2 className="text-2xl font-bold">Priority Focus</h2>
-
                   <ul className="mt-4 space-y-3 text-gray-300">
                     {analysis.priority_focus?.length > 0 ? (
                       analysis.priority_focus.map((item, i) => (
@@ -257,7 +259,6 @@ export default function UploadPage() {
 
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
                   <h2 className="text-2xl font-bold">Scan Quality Tips</h2>
-
                   <ul className="mt-4 space-y-3 text-gray-300">
                     {analysis.scan_quality_tips?.length > 0 ? (
                       analysis.scan_quality_tips.map((tip, i) => (
@@ -280,9 +281,7 @@ export default function UploadPage() {
                         key={i}
                         className="rounded-full border border-white/10 bg-black/40 px-4 py-2 text-sm text-white"
                       >
-                        <span className="capitalize">
-                         tag.display
-                        </span>
+                        <span>tag.display</span>
                         <span className="ml-2 text-gray-400">
                           ({tag.confidence})
                         </span>
