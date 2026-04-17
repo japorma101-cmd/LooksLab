@@ -128,7 +128,15 @@ Return exactly this JSON shape:
       }),
     });
 
-    const data = await res.json();
+  const data = await res.json();
+console.log("OPENAI RESPONSE:", JSON.stringify(data, null, 2));
+
+if (!res.ok) {
+  return NextResponse.json(
+    { error: data.error?.message || "OpenAI request failed", raw: data },
+    { status: 500 }
+  );
+}
 
     const rawText =
       data.output_text ||

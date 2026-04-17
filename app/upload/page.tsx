@@ -25,11 +25,50 @@ export default function UploadPage() {
   const [error, setError] = useState("");
 
   async function fileToDataUrl(file: File): Promise<string> {
+    const supportedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (supportedTypes.includes(file.type)) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            reject(new Error("Could not create canvas context"));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0);
+
+          const jpegDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+          URL.revokeObjectURL(objectUrl);
+          resolve(jpegDataUrl);
+        } catch (err) {
+          URL.revokeObjectURL(objectUrl);
+          reject(err);
+        }
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Failed to load image for conversion"));
+      };
+
+      img.src = objectUrl;
     });
   }
 
@@ -121,14 +160,14 @@ export default function UploadPage() {
               <h2 className="text-xl font-bold">Upload images</h2>
 
               <p className="mt-3 text-sm text-gray-400">
-                JPG, PNG, or HEIC style photo uploads
+                JPG, JPEG, PNG, or WebP only
               </p>
 
               <input
                 id="photo-upload"
                 type="file"
                 multiple
-                accept="image/*"
+                accept=".jpg,.jpeg,.png,.webp"
                 onChange={handleFileChange}
                 className="hidden"
               />
