@@ -281,7 +281,7 @@ export default function UploadPage() {
                         className="rounded-full border border-white/10 bg-black/40 px-4 py-2 text-sm text-white"
                       >
                         <span className="capitalize">
-                          {tag.name.replaceAll("_", " ")}
+                         tag.display
                         </span>
                         <span className="ml-2 text-gray-400">
                           ({tag.confidence})

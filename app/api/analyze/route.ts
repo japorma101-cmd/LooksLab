@@ -12,42 +12,64 @@ const adviceMap: Record<string, string[]> = {
     "Exfoliate 2-3x a week.",
   ],
   under_eye_tiredness: [
-    "low dose Melatonin + Trazadone every night for sleep.",
+    "Low dose melatonin + trazodone for sleep.",
     "Hydroquinone cream to brighten under eyes.",
-    "Reduce stress and fatigue in every day activities.",
+    "Reduce stress and fatigue.",
   ],
   fine_lines: [
     "Use daily sunscreen.",
-    "Tretinon adjusted to your skin 3-5x a week.",
+    "Tretinoin 3-5x a week.",
     "Heavy moisturisers.",
   ],
   hair_thinning: [
-    "Topicals such as minoxidil and ru58841 + microneedling.",
-    "Orals such as minoxidil, dutasteride or finasteride for dht blocking.",
-    "Natural whole food diet + low stress levels.",
+    "Topicals like minoxidil + microneedling.",
+    "DHT blockers if needed.",
+    "Lower stress + better diet.",
   ],
   higher_body_fat_appearance: [
-    "Basics such as a whole food diet mostly meat and less calories in then out.",
-    "Fat loss agents such as Retatrutide, Tesamorelin, Telmisartan.",
-    "Prioritize protein intake, sleep, and daily movement.",
+    "Calorie deficit + whole food diet.",
+    "Fat loss agents if needed.",
+    "Daily movement + sleep.",
   ],
   low_muscle_definition: [
-    "Low dose testosterone + Low dose hgh",
-    "Aim for consistent protein intake and recovery.",
-    "Possibly add an androgen such as low dose tren or anavar",
+    "Resistance training + protein.",
+    "Hormonal optimization if needed.",
+    "Track strength weekly.",
   ],
   posture_issue: [
-    "Focus on upper-back and core training.",
-    "Practice better standing posture during daily life.",
-    "Retake scans standing tall and front-facing for cleaner comparisons.",
+    "Upper-back + core training.",
+    "Fix daily posture habits.",
+    "Retake scan standing straight.",
   ],
   asymmetry_mild: [
-    "Sleep on your back and work on neck strength.",
-    "Track changes over time instead of judging one photo too heavily.",
+    "Improve sleep posture.",
+    "Track over time.",
   ],
   jawline_softness: [
-    "Leaner body composition may improve facial definition.",
-    "Use consistent posture and neck position in repeat scans.",
+    "Lower body fat.",
+    "Improve neck posture.",
+  ],
+
+  // NEW TAGS
+  bloated_appearance: [
+    "Reduce inflammatory foods.",
+    "Improve gut health.",
+    "Lower sodium swings + stay hydrated.",
+  ],
+  unhealthy_appearance: [
+    "Fix sleep, diet, and hydration first.",
+    "Reduce stress + improve recovery.",
+    "Focus on consistent daily habits.",
+  ],
+  low_bone_mass_appearance: [
+    "Increase calcium + vitamin D intake.",
+    "Resistance training + impact exercises.",
+    "Improve overall nutrition.",
+  ],
+  low_facial_contrast: [
+    "Improve skin tone consistency.",
+    "Hair styling / grooming can increase contrast.",
+    "Better lighting and tanning can help.",
   ],
 };
 
@@ -82,9 +104,7 @@ Analyze the uploaded appearance photos.
 
 Rules:
 - Only identify visually observable appearance patterns
-- Do not diagnose disease
 - Return JSON only
-- Do not include markdown fences
 
 Allowed tags:
 - acne_like_breakouts
@@ -97,24 +117,21 @@ Allowed tags:
 - posture_issue
 - asymmetry_mild
 - jawline_softness
+- bloated_appearance
+- unhealthy_appearance
+- low_bone_mass_appearance
+- low_facial_contrast
 
-Return exactly this JSON shape:
+Return exactly this JSON:
 {
   "overall_rating": 7.4,
-  "summary": "Short realistic summary here.",
+  "summary": "Short realistic summary",
   "priority_focus": ["item 1", "item 2", "item 3"],
   "tags": [
-    {
-      "name": "acne_like_breakouts",
-      "confidence": "high"
-    }
+    { "name": "acne_like_breakouts", "confidence": "high" }
   ],
   "scan_quality": "medium",
-  "scan_quality_tips": [
-    "tip 1",
-    "tip 2",
-    "tip 3"
-  ]
+  "scan_quality_tips": ["tip 1", "tip 2"]
 }
                 `,
               },
@@ -128,57 +145,57 @@ Return exactly this JSON shape:
       }),
     });
 
-  const data = await res.json();
-console.log("OPENAI RESPONSE:", JSON.stringify(data, null, 2));
+    const data = await res.json();
+    console.log("OPENAI RESPONSE:", JSON.stringify(data, null, 2));
 
-if (!res.ok) {
-  return NextResponse.json(
-    { error: data.error?.message || "OpenAI request failed", raw: data },
-    { status: 500 }
-  );
-}
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: data.error?.message || "OpenAI request failed", raw: data },
+        { status: 500 }
+      );
+    }
 
     const rawText =
       data.output_text ||
       data.output?.[0]?.content?.[0]?.text ||
       "";
 
-    if (!rawText) {
-      return NextResponse.json(
-        { error: "No result returned from AI" },
-        { status: 500 }
-      );
-    }
-
     let parsed;
     try {
       parsed = JSON.parse(rawText);
     } catch {
       return NextResponse.json(
-        { error: "AI returned invalid JSON", raw: rawText },
+        { error: "Invalid JSON from AI", raw: rawText },
         { status: 500 }
       );
     }
 
     const tags = Array.isArray(parsed.tags) ? parsed.tags : [];
 
+    // 👇 CLEAN TAG NAMES HERE
+    const cleanedTags = tags.map((tag: { name: string; confidence: string }) => ({
+      ...tag,
+      display: tag.name
+        .replace("_appearance", "")
+        .replaceAll("_", " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase()),
+    }));
+
     const mappedAdvice = tags.flatMap((tag: { name: string }) => {
       return adviceMap[tag.name] || [];
     });
-
-    const uniqueAdvice = [...new Set(mappedAdvice)];
 
     return NextResponse.json({
       overall_rating: parsed.overall_rating ?? null,
       summary: parsed.summary ?? "",
       priority_focus: parsed.priority_focus ?? [],
-      tags,
+      tags: cleanedTags,
       scan_quality: parsed.scan_quality ?? "medium",
       scan_quality_tips: parsed.scan_quality_tips ?? [],
-      mapped_advice: uniqueAdvice,
+      mapped_advice: [...new Set(mappedAdvice)],
     });
   } catch (error) {
-    console.error("Analyze route error:", error);
+    console.error(error);
 
     return NextResponse.json(
       { error: "Failed to analyze" },
