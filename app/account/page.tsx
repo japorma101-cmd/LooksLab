@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "../../lib/supabase/server";
 
-export default async function LearnPage() {
+export default async function AccountPage() {
   const supabase = await createClient();
 
   const {
@@ -11,8 +11,9 @@ export default async function LearnPage() {
   if (!user) redirect("/login");
 
   return (
-    <main className="bg-black text-white min-h-screen p-10">
-      <h1 className="text-4xl font-bold">Learn</h1>
+    <main className="min-h-screen bg-black text-white p-10">
+      <h1 className="text-4xl font-bold">Account</h1>
+      <p className="mt-4">{user.email}</p>
     </main>
   );
 }

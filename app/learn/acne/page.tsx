@@ -31,10 +31,9 @@ export default function AcnePage() {
           </section>
 
           <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <h2 className="text-2xl font-bold">Basic non-medical advice</h2>
+            <h2 className="text-2xl font-bold">Non-medical advice</h2>
             <p className="mt-3 text-gray-300">
-              Keep skincare simple and consistent. Use a gentle cleanser,
-              moisturizer, and sunscreen. Avoid overusing harsh products and avoid picking at breakouts.
+              (get a doctors advice before doing any of this) accutane + tazarotene for active acne. 
             </p>
           </section>
 

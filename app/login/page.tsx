@@ -1,34 +1,51 @@
+"use client";
+
+import { useState } from "react";
+import { createClient } from "../../lib/supabase/client";
+import { useRouter } from "next/navigation";
+
 export default function LoginPage() {
+  const supabase = createClient();
+  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  async function login() {
+    await supabase.auth.signInWithPassword({ email, password });
+    router.push("/account");
+  }
+
+  async function signup() {
+    await supabase.auth.signUp({ email, password });
+    router.push("/account");
+  }
+
   return (
-    <main className="px-6 py-16">
-      <div className="max-w-md mx-auto rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl">
-        <p className="text-xs uppercase tracking-[0.35em] text-gray-400 text-center">
-          Account Access
-        </p>
+    <main className="min-h-screen flex items-center justify-center bg-black text-white">
+      <div className="p-8 bg-white/10 rounded-2xl">
+        <h1 className="text-3xl font-bold">Login</h1>
 
-        <h1 className="mt-4 text-4xl font-extrabold text-center">Login</h1>
+        <input
+          className="mt-4 w-full p-2 text-black"
+          placeholder="Email"
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-        <p className="mt-3 text-center text-gray-400">
-          Sign in to access your scans and progress.
-        </p>
+        <input
+          className="mt-2 w-full p-2 text-black"
+          type="password"
+          placeholder="Password"
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-        <div className="mt-8 space-y-4">
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none"
-          />
+        <button onClick={login} className="mt-4 bg-white text-black px-4 py-2">
+          Login
+        </button>
 
-          <input
-            type="password"
-            placeholder="Password"
-            className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none"
-          />
-
-          <button className="w-full rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 px-6 py-3 font-semibold text-white hover:opacity-90 transition">
-            Sign In
-          </button>
-        </div>
+        <button onClick={signup} className="mt-2">
+          Create account
+        </button>
       </div>
     </main>
   );
